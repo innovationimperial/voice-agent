@@ -1,4 +1,3 @@
-# voice_assistant/transcription.py
 
 from colorama import Fore, init
 from openai import OpenAI
@@ -12,6 +11,7 @@ import json
 import logging
 import requests
 import time
+import os
 
 fast_url = "http://localhost:8000"
 checked_fastwhisperapi = False
@@ -43,6 +43,9 @@ def transcribe_audio(model, api_key, audio_file_path, local_model_path=None):
     str: The transcribed text.
     """
     try:
+        if not os.path.exists(audio_file_path):
+            raise FileNotFoundError(f"Audio file not found: {audio_file_path}")
+
         if model == 'openai':
             client = OpenAI(api_key=api_key)
             with open(audio_file_path, "rb") as audio_file:
@@ -56,7 +59,7 @@ def transcribe_audio(model, api_key, audio_file_path, local_model_path=None):
             client = Groq(api_key=api_key)
             with open(audio_file_path, "rb") as audio_file:
                 transcription = client.audio.transcriptions.create(
-                    model="whisper-large-v3",
+                    model="distil-whisper-large-v3-en",
                     file=audio_file,
                     language='en'
                 )
@@ -103,7 +106,6 @@ def transcribe_audio(model, api_key, audio_file_path, local_model_path=None):
             }
             headers = {
                 'Authorization': 'Bearer dummy_api_key',
-                
             }
             response = requests.post(endpoint, files=files, data=data, headers=headers)
             response_json = response.json()

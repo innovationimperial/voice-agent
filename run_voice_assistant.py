@@ -17,31 +17,37 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Initialize colorama
 init(autoreset=True)
 
-import threading
-
-
 def main():
     """
     Main function to run the voice assistant.
     """
     chat_history = [
-        {"role": "system", "content": """ You are a helpful Assistant called Verbi. 
-         You are friendly and fun and you will help the users with their requests.
-         Your answers are short and concise. """}
+        {"role": "system", "content": """ You are a helpful Assistant called AgroImperial from innovation imperial. 
+         You are friendly and  proffesional and you understand everything about farming from production to business you know all the organic 
+         regulations and laws ,permits and certifications especially in INTER AFRICAN TRADE AND ORGANIC FARMING
+         your answers are  insightfull but short and well summarized in a text format mark down clean format like this (
+  response format: Local African Suppliers:
+
+Ecoorganic Fertilizers (Kenya): Offers a range of organic fertilizers, including compost tea, bokashi, and worm casting.
+Agricola Organic Fertilizers (Ghana): Provides organic fertilizers like neem cake, bone meal, and fish bone meal.
+Greenbelt Fertilizers (South Africa): Supplies organic fertilizers like compost, manure, and vermicompost." DO NOT PUT ASTERIX LIKE THI ** IN THE RESPONSE FORMAT)"""}
     ]
 
     while True:
         try:
             # Record audio from the microphone and save it as 'test.wav'
-            record_audio(Config.INPUT_AUDIO)
+            wav_file_path = record_audio(Config.INPUT_AUDIO)
+            if not wav_file_path:
+                logging.error("Failed to record audio. Retrying...")
+                continue
 
             # Get the API key for transcription
             transcription_api_key = get_transcription_api_key()
             
             # Transcribe the audio file
-            user_input = transcribe_audio(Config.TRANSCRIPTION_MODEL, transcription_api_key, Config.INPUT_AUDIO, Config.LOCAL_MODEL_PATH)
+            user_input = transcribe_audio(Config.TRANSCRIPTION_MODEL, transcription_api_key, wav_file_path, Config.LOCAL_MODEL_PATH)
 
-            # Check if the transcription is empty and restart the recording if it is. This check will avoid empty requests if vad_filter is used in the fastwhisperapi.
+            # Check if the transcription is empty and restart the recording if it is
             if not user_input:
                 logging.info("No transcription was returned. Starting recording again.")
                 continue
@@ -65,7 +71,7 @@ def main():
             chat_history.append({"role": "assistant", "content": response_text})
 
             # Determine the output file format based on the TTS model
-            if Config.TTS_MODEL == 'openai' or Config.TTS_MODEL == 'elevenlabs' or Config.TTS_MODEL == 'melotts' or Config.TTS_MODEL == 'cartesia':
+            if Config.TTS_MODEL in ['openai', 'elevenlabs', 'melotts', 'cartesia']:
                 output_file = 'output.mp3'
             else:
                 output_file = 'output.wav'
@@ -77,18 +83,17 @@ def main():
             text_to_speech(Config.TTS_MODEL, tts_api_key, response_text, output_file, Config.LOCAL_MODEL_PATH)
 
             # Play the generated speech audio
-            if Config.TTS_MODEL=="cartesia":
-                pass
-            else:
+            if Config.TTS_MODEL != "cartesia":
                 play_audio(output_file)
             
-            # Clean up audio files
-            # delete_file(Config.INPUT_AUDIO)
+            # Clean up audio files (uncomment if needed)
+            # delete_file(wav_file_path)
             # delete_file(output_file)
 
         except Exception as e:
             logging.error(Fore.RED + f"An error occurred: {e}" + Fore.RESET)
-            delete_file(Config.INPUT_AUDIO)
+            if 'wav_file_path' in locals():
+                delete_file(wav_file_path)
             if 'output_file' in locals():
                 delete_file(output_file)
             time.sleep(1)
